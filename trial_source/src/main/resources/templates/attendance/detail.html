@@ -73,6 +73,11 @@
 		</div>
 	</div>
 
+	<!-- Task.25 - 馬場成樹 -->
+	<th:block th:unless="${notEnterFlg}">
+		<script> window.alert("過去日の勤怠に未入力があります。"); </script>
+	</th:block>
+
 	<script type="text/javascript" th:inline="javascript">
 		$(function() {
 			$("#now").text('現在の時刻は　' + getClock() + '　です。');

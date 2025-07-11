@@ -1,6 +1,8 @@
 package jp.co.sss.lms.service;
 
 import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -334,4 +336,21 @@ public class StudentAttendanceService {
 		return messageUtil.getMessage(Constants.PROP_KEY_ATTENDANCE_UPDATE_NOTICE);
 	}
 
+	/**
+	 * 勤怠の過去日未入力確認
+	 * 
+	 * @author 馬場成樹  – Task.25
+	 * @param lmsUserId
+	 * @return ture or false
+	 */
+	public boolean hasMissingAttendance(Integer lmsUserId) {
+
+		LocalDate localDate = LocalDate.now();
+		Date trainingDate = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+		// 勤怠未入力件数取得
+		int resultCount = tStudentAttendanceMapper.notEnterCount(lmsUserId, Constants.DB_FLG_FALSE, trainingDate);
+		System.out.println("★確認：" + resultCount);
+		return resultCount > 0;
+	}
 }

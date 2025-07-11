@@ -41,12 +41,17 @@ public class AttendanceController {
 	 */
 	@RequestMapping(path = "/detail", method = RequestMethod.GET)
 	public String index(Model model) {
-
+		
 		// 勤怠一覧の取得
 		List<AttendanceManagementDto> attendanceManagementDtoList = studentAttendanceService
 				.getAttendanceManagement(loginUserDto.getCourseId(), loginUserDto.getLmsUserId());
 		model.addAttribute("attendanceManagementDtoList", attendanceManagementDtoList);
 
+		// 馬場成樹 – Task.25
+		// 勤怠未入力判定結果の取得
+		model.addAttribute("notEnterFlg", studentAttendanceService.hasMissingAttendance(loginUserDto.getLmsUserId()));
+
+		System.out.println("★" + studentAttendanceService.hasMissingAttendance(loginUserDto.getLmsUserId()));
 		return "attendance/detail";
 	}
 
