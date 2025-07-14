@@ -350,7 +350,7 @@ public class StudentAttendanceService {
 
 		// 勤怠未入力件数取得
 		int resultCount = tStudentAttendanceMapper.notEnterCount(lmsUserId, Constants.DB_FLG_FALSE, trainingDate);
-		System.out.println("★確認：" + resultCount);
+
 		return resultCount > 0;
 	}
 }

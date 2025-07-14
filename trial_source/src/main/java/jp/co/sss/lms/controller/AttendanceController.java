@@ -51,7 +51,6 @@ public class AttendanceController {
 		// 勤怠未入力判定結果の取得
 		model.addAttribute("notEnterFlg", studentAttendanceService.hasMissingAttendance(loginUserDto.getLmsUserId()));
 
-		System.out.println("★" + studentAttendanceService.hasMissingAttendance(loginUserDto.getLmsUserId()));
 		return "attendance/detail";
 	}
 

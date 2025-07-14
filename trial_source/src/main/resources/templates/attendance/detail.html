@@ -26,6 +26,11 @@
 		</ul>
 	</th:block>
 
+	<!-- Task.25 - 馬場成樹 -->
+	<th:block th:if="${notEnterFlg}">
+		<script> window.alert("過去日の勤怠に未入力があります。"); </script>
+	</th:block>
+
 	<th:block th:if="${session.loginUserDto.role == '0001'}">
 		<div class="well well-lg p10 mb10">
 			<div class="form-group">
@@ -72,11 +77,6 @@
 			</table>
 		</div>
 	</div>
-
-	<!-- Task.25 - 馬場成樹 -->
-	<th:block th:unless="${notEnterFlg}">
-		<script> window.alert("過去日の勤怠に未入力があります。"); </script>
-	</th:block>
 
 	<script type="text/javascript" th:inline="javascript">
 		$(function() {
