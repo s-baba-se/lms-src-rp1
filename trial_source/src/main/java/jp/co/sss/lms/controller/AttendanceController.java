@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
 import jp.co.sss.lms.form.AttendanceForm;
+import jp.co.sss.lms.service.PlaceService;
 import jp.co.sss.lms.service.StudentAttendanceService;
 import jp.co.sss.lms.util.Constants;
 
@@ -27,6 +28,8 @@ public class AttendanceController {
 
 	@Autowired
 	private StudentAttendanceService studentAttendanceService;
+	@Autowired
+	private PlaceService placeService;
 	@Autowired
 	private LoginUserDto loginUserDto;
 
@@ -148,4 +151,17 @@ public class AttendanceController {
 		return "attendance/detail";
 	}
 
+	/**
+	 * 勤怠一括登録画面 初期表示
+	 * 
+	 * @param model
+	 * @return 勤怠一括登録画面
+	 */
+	@RequestMapping(path = "/bulkRegist", method = RequestMethod.GET)
+	public String bulkRegist(Model model) {
+		
+		model.addAttribute("placeName",placeService.getPlaceName(loginUserDto.getPlaceId()));
+
+		return "attendance/bulkRegist";
+	}
 }

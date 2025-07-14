@@ -1,8 +1,6 @@
 package jp.co.sss.lms.service;
 
 import java.text.ParseException;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -345,11 +343,11 @@ public class StudentAttendanceService {
 	 */
 	public boolean hasMissingAttendance(Integer lmsUserId) {
 
-		LocalDate localDate = LocalDate.now();
-		Date trainingDate = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-
+		Date today = new Date();
+		
 		// 勤怠未入力件数取得
-		int resultCount = tStudentAttendanceMapper.notEnterCount(lmsUserId, Constants.DB_FLG_FALSE, trainingDate);
+		int resultCount = tStudentAttendanceMapper.notEnterCount(lmsUserId, Constants.DB_FLG_FALSE,
+				dateUtil.stringToSqlDate(dateUtil.toString(today, Constants.DEFAULT_DATE_FORMAT)));
 
 		return resultCount > 0;
 	}
