@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
+import jp.co.sss.lms.form.AttendanceBulkRegistSearchForm;
 import jp.co.sss.lms.form.AttendanceForm;
 import jp.co.sss.lms.service.PlaceService;
 import jp.co.sss.lms.service.StudentAttendanceService;
@@ -160,8 +162,46 @@ public class AttendanceController {
 	@RequestMapping(path = "/bulkRegist", method = RequestMethod.GET)
 	public String bulkRegist(Model model) {
 		
-		model.addAttribute("placeName",placeService.getPlaceName(loginUserDto.getPlaceId()));
+		model.addAttribute("placeId",loginUserDto.getPlaceId());
+		model.addAttribute("placeName", placeService.getPlaceName(loginUserDto.getPlaceId()));
+		model.addAttribute("isSearch", false);
 
+		return "attendance/bulkRegist";
+	}
+
+	/**
+	 * 勤怠一括登録画面 『検索』ボタン押下
+	 * 
+	 * @param model
+	 * @return 勤怠一括登録画面
+	 */
+	@RequestMapping(path = "/bulkRegist/search", method = RequestMethod.POST)
+	public String search(Model model, @ModelAttribute("abrsForm") AttendanceBulkRegistSearchForm abrsForm,
+			BindingResult result) {
+		// 入力チェック
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println("**************************************");
+		System.out.println("From：" + abrsForm.getSearchPeriodFrom());
+		System.out.println("To  ：" + abrsForm.getSearchPeriodTo());
+		System.out.println("Id  ：" + abrsForm.getPlaceId());
+		System.out.println();
+		System.out.println();
+		
+		String err = placeService.searchParamCheck(abrsForm);
+		System.out.println(err);
+		
+		if (result.hasErrors()) {
+			System.out.println("エラー");
+		}
+		System.out.println();
+		System.out.println();
+		
+
+		//		model.addAttribute("placeName",placeService.getPlaceName(loginUserDto.getPlaceId()));
+
+		model.addAttribute("isSearch", true);
 		return "attendance/bulkRegist";
 	}
 }

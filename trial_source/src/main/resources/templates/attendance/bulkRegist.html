@@ -11,29 +11,25 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 		<div id="main" class="main2clm">
 			<h2>勤怠一括登録</h2>
 
-			<form name="attendance_bulkRegist_listActionForm" method="post" th:action="@{/attendance/bulkRegist/search}"
-				class="form-horizontal">
-				<div>
-					<input type="hidden" name="org.apache.struts.taglib.html.TOKEN"
-					value="c561a5fd29ca16c8536bb77fad2738bc" />
-				</div>
+			<form method="post" th:action="@{/attendance/bulkRegist/search}" class="form-horizontal">
 				<div class="well bs-component">
 					<fieldset>
 						<legend>検索</legend>
 						<div class="form-group">
 							<label for="placeName" class="col-lg-2 control-label">期間</label>
 							<div class="col-lg-10 form-inline">
-								<input type="text" name="searchPeriodFrom" value="2021-02-01" id="searchFrom" style="width: 10em"
-								class="form-control datepickerFrom" />　～　
-								<input type="text" name="searchPeriodTo" value="2021-02-02" id="searchTo" style="width: 10em"
-								class="form-control datepickerTo" />
+								<input type="text" name="searchPeriodFrom" id="searchFrom" style="width: 10em"
+									 />　～　
+								<input type="text" name="searchPeriodTo" id="searchTo" style="width: 10em"
+									 />
 							</div>
 						</div>
 
 						<div class="form-group">
 							<label for="placeName" class="col-lg-2 control-label">会場名</label>
 							<div class="col-lg-10">
-								<input type="text" th:value="${placeName}" disabled class="form-control">
+								<input type="text" name="placeName" id="placeName" th:value="${placeName}" disabled class="form-control">
+								<input type="hidden" name="placeId" th:value="${placeId}" >
 							</div>
 						</div>
 
@@ -45,7 +41,7 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 					</fieldset>
 				</div>
 
-				<table class="table">
+				<table th:if="${isSearch}" class="table">
 					<tbody>
 						<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
 							<th colspan="7">2021年2月1日(月)</th>
