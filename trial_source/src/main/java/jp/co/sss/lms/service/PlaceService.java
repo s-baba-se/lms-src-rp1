@@ -1,10 +1,14 @@
 package jp.co.sss.lms.service;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import jp.co.sss.lms.dto.UserAttendanceDto;
 import jp.co.sss.lms.entity.MPlace;
 import jp.co.sss.lms.form.AttendanceBulkRegistSearchForm;
 import jp.co.sss.lms.mapper.MPlaceMapper;
@@ -42,41 +46,78 @@ public class PlaceService {
 		return placeName;
 	}
 	
-	public String searchParamCheck(AttendanceBulkRegistSearchForm abrsForm) {
+	public Map<String, String> searchParamCheck(AttendanceBulkRegistSearchForm abrsForm) {
+		Map<String, String> errors = new HashMap<>();
+		boolean errFlg = false;
+		
+		System.out.println("searchParamCheck() in");
+		System.out.println("getSearchPeriodFrom：" + abrsForm.getSearchPeriodFrom());
+		System.out.println("getSearchPeriodTo  ：" + abrsForm.getSearchPeriodTo());
 
 		// 期間(FROM)の未入力チェック
 		if (abrsForm.getSearchPeriodFrom() == null || abrsForm.getSearchPeriodFrom().isEmpty()) {
-			return messageUtil.getMessage("required", new String[] {"期間（from）"});
+			System.out.println("期間(FROM)の未入力チェック in");
+			errors.put("searchFromEmptyError", messageUtil.getMessage("required", new String[] {"期間（from）"}));
+			errFlg = true;
 		}
 
 		// 期間(To)の未入力チェック
 		if (abrsForm.getSearchPeriodTo() == null || abrsForm.getSearchPeriodTo().isEmpty()) {
-			return messageUtil.getMessage("required", new String[] {"期間（to）"});
+			System.out.println("期間(To)の未入力チェック in");
+			errors.put("searchToEmptyError", messageUtil.getMessage("required", new String[] {"期間（to）"}));
+			errFlg = true;
+		}
+
+		if (errFlg) {
+			return errors;
 		}
 
 		// 現在日を取得
 		Date today = new Date();
-		
+
 		// String型をDate型に変換
 		Date searchPeriodFrom = dateUtil.stringToSqlDate(abrsForm.getSearchPeriodFrom());
 		Date searchPeriodTo = dateUtil.stringToSqlDate(abrsForm.getSearchPeriodTo());
 
 		// 期間(To)が現在日付より未来日の場合
 		if (searchPeriodTo.after(today)) {
-			return messageUtil.getMessage("searchToRangeError", new String[] {"0"});
+			errors.put("searchToRangeError", messageUtil.getMessage("searchToRangeError", new String[] {abrsForm.getSearchPeriodTo()}));
 		}
-		
+
 		// 期間(To)が期間(From)より過去日の場合
 		if (searchPeriodTo.before(searchPeriodFrom)) {
-			return messageUtil.getMessage("searchPeriodCompareError",
-					new String[] { abrsForm.getSearchPeriodTo(), abrsForm.getSearchPeriodFrom() });
+			errors.put("searchPeriodCompareError", messageUtil.getMessage("searchPeriodCompareError",
+					new String[] { abrsForm.getSearchPeriodTo(), abrsForm.getSearchPeriodFrom() }));
 		}
-		
+
 		// 期間(From) ～ 期間(To)の日数 が 30日より大きい場合
 		int days = dateUtil.differenceDays(searchPeriodTo, searchPeriodFrom);
 		if (days > 30) {
-			return messageUtil.getMessage("searchSettingOver", new String[] {"0"});
+			String searchPeriod = messageUtil.getMessage("searchPeriod");
+			errors.put("searchSettingOver", messageUtil.getMessage("searchSettingOver", new String[] {searchPeriod, "30日"}));
 		}
-		return "";
+
+		return errors;
 	}
+	
+	public List<UserAttendanceDto> getUserAttendanceDto(AttendanceBulkRegistSearchForm abrsForm) {
+		// String型をDate型に変換
+		Date searchPeriodFrom = dateUtil.stringToSqlDate(abrsForm.getSearchPeriodFrom());
+		Date searchPeriodTo = dateUtil.stringToSqlDate(abrsForm.getSearchPeriodTo());
+
+		return mPlaceMapper.getUserAttendanceDto(abrsForm.getPlaceId(),searchPeriodFrom, searchPeriodTo, Constants.DB_FLG_FALSE);
+	}
+
+/*
+	public List<DailyAttendanceForm> setDailyAttendanceForm(List<UserAttendanceDto> userAttendanceDtoList) {
+		List<DailyAttendanceForm> dailyAttendanceFormList = new ArrayList<>();
+		
+		for (var userAttendanceDto : userAttendanceDtoList) {
+			userAttendanceDto.getTrainingDate();
+			userAttendanceDto.getTrainingStartTime();
+			userAttendanceDto.getTrainingEndTime();
+		}
+		retrun dailyAttendanceFormList;
+	}
+*/	
 }

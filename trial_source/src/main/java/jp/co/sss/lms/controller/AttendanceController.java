@@ -2,6 +2,7 @@ package jp.co.sss.lms.controller;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -176,30 +177,18 @@ public class AttendanceController {
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/search", method = RequestMethod.POST)
-	public String search(Model model, @ModelAttribute("abrsForm") AttendanceBulkRegistSearchForm abrsForm,
-			BindingResult result) {
-		// 入力チェック
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println("**************************************");
-		System.out.println("From：" + abrsForm.getSearchPeriodFrom());
-		System.out.println("To  ：" + abrsForm.getSearchPeriodTo());
-		System.out.println("Id  ：" + abrsForm.getPlaceId());
-		System.out.println();
-		System.out.println();
-		
-		String err = placeService.searchParamCheck(abrsForm);
-		System.out.println(err);
-		
-		if (result.hasErrors()) {
-			System.out.println("エラー");
-		}
-		System.out.println();
-		System.out.println();
-		
+	public String search(Model model, @ModelAttribute("abrsForm") AttendanceBulkRegistSearchForm abrsForm) {
 
-		//		model.addAttribute("placeName",placeService.getPlaceName(loginUserDto.getPlaceId()));
+		// 入力チェック
+		Map<String, String> errors = placeService.searchParamCheck(abrsForm);
+		
+		if (!errors.isEmpty()) {
+			System.out.println("errors: " + errors);
+			model.addAttribute("errors", errors);
+			return "attendance/bulkRegist";
+		}
+		
+//		placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(abrsForm));
 
 		model.addAttribute("isSearch", true);
 		return "attendance/bulkRegist";

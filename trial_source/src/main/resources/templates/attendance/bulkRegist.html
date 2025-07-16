@@ -19,9 +19,17 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 							<label for="placeName" class="col-lg-2 control-label">期間</label>
 							<div class="col-lg-10 form-inline">
 								<input type="text" name="searchPeriodFrom" id="searchFrom" style="width: 10em"
-									 />　～　
+									th:classappend="${errors != null
+												 and (errors.containsKey('searchFromEmptyError')
+												   or errors.containsKey('searchSettingOver'))}
+												   ? 'errorInput' : ''"/>　～　
 								<input type="text" name="searchPeriodTo" id="searchTo" style="width: 10em"
-									 />
+									th:classappend="${errors != null
+												 and (errors.containsKey('searchToEmptyError')
+												   or errors.containsKey('searchToRangeError')
+												   or errors.containsKey('searchPeriodCompareError')
+												   or errors.containsKey('searchSettingOver'))}
+												   ? 'errorInput' : ''"/>
 							</div>
 						</div>
 
@@ -40,7 +48,9 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 						</div>
 					</fieldset>
 				</div>
-
+				<th:block th:each="err : ${errors}">
+					<div th:text="${err.value}" class="error-message"></div>
+				</th:block>
 				<table th:if="${isSearch}" class="table">
 					<tbody>
 						<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
