@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
-import jp.co.sss.lms.form.AttendanceBulkRegistSearchForm;
 import jp.co.sss.lms.form.AttendanceForm;
 import jp.co.sss.lms.service.PlaceService;
 import jp.co.sss.lms.service.StudentAttendanceService;
@@ -177,10 +176,10 @@ public class AttendanceController {
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/search", method = RequestMethod.POST)
-	public String search(Model model, @ModelAttribute("abrsForm") AttendanceBulkRegistSearchForm abrsForm) {
+	public String search(Model model, @ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
 
 		// 入力チェック
-		Map<String, String> errors = placeService.searchParamCheck(abrsForm);
+		Map<String, String> errors = placeService.searchParamCheck(attendanceForm);
 		
 		if (!errors.isEmpty()) {
 			System.out.println("errors: " + errors);
@@ -188,8 +187,7 @@ public class AttendanceController {
 			return "attendance/bulkRegist";
 		}
 		
-//		placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(abrsForm));
-
+		model.addAttribute("dailyAttendanceFormList", placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(attendanceForm)));
 		model.addAttribute("isSearch", true);
 		return "attendance/bulkRegist";
 	}

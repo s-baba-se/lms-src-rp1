@@ -18,8 +18,12 @@ public class DailyAttendanceForm {
 	private String trainingDate;
 	/** 出勤時間 */
 	private String trainingStartTime;
+	/** 出勤時間（コピー用） */
+	private String trainingStartTimeCopy;
 	/** 退勤時間 */
 	private String trainingEndTime;
+	/** 退勤時間（コピー用） */
+	private String trainingEndTimeCopy;
 	/** 中抜け時間 */
 	private Integer blankTime;
 	/** 中抜け時間（画面表示用） */
@@ -46,10 +50,5 @@ public class DailyAttendanceForm {
 	private String courseName;
 	/** インデックス */
 	private String index;
-	/** 馬場成樹 - Task.58 */
-	/** 出勤時間（画面表示用） */
-	private String trainingStartTimeValue;
-	/** 退勤時間（画面表示用） */
-	private String trainingEndTimeValue;
 
 }

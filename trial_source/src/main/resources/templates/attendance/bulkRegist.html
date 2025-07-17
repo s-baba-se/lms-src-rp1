@@ -48,13 +48,15 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 						</div>
 					</fieldset>
 				</div>
+
 				<th:block th:each="err : ${errors}">
 					<div th:text="${err.value}" class="error-message"></div>
 				</th:block>
-				<table th:if="${isSearch}" class="table">
+
+				<table th:if="${isSearch}" class="table" th:each="dailyAttendanceForm : ${dailyAttendanceFormList}">
 					<tbody>
 						<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
-							<th colspan="7">2021年2月1日(月)</th>
+							<th colspan="7" th:text="${dailyAttendanceForm.dispTrainingDate}"></th>
 							<th colspan="2">
 								<button id="copyAttendanceDaily" type="button" value="0" class="btn btn-default">
 									受講生が入力した時刻をコピーする
@@ -81,14 +83,18 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 						</tr>
 
 						<tr>
-							<td>デモ受講生</td>
-							<td>【削除不可】体験型Java研修用【デモ】</td>
-							<td>[未入力]</td>
-							<td>[未入力]</td>
-							<td></td>
-							<td></td>
-							<td><strong data-toggle="popover" data-placement="right" data-content="社用のため欠勤" data-trigger="hover"
-							data-original-title="" title="">あり</strong></td>
+							<td th:text="${dailyAttendanceForm.userName} != null ? ${dailyAttendanceForm.userName} : ''"></td>
+							<td th:text="${dailyAttendanceForm.courseName} != null ? ${dailyAttendanceForm.courseName} : ''"></td>
+							<td th:text="${dailyAttendanceForm.trainingStartTime} != null ? ${dailyAttendanceForm.trainingStartTime} : ''"></td>
+							<td th:text="${dailyAttendanceForm.trainingEndTime} != null ? ${dailyAttendanceForm.trainingEndTime} : ''"></td>
+							<td th:text="${dailyAttendanceForm.blankTimeValue} != null ? ${dailyAttendanceForm.blankTimeValue} : ''"></td>
+							<td th:text="${dailyAttendanceForm.statusDispName} != null ? ${dailyAttendanceForm.statusDispName} : ''"></td>
+							<td >
+								<strong th:if="${dailyAttendanceForm.note} != null "
+									data-toggle="popover" data-placement="right" th:data-content="${dailyAttendanceForm.note}" data-trigger="hover"
+									data-original-title="" title="">あり</strong>
+								<th:block th:if="${dailyAttendanceForm.note} == null ">なし</th:block>
+							</td>
 							<input type="hidden" name="dailyAttendanceFormList[0].lmsUserId" value="24463" />
 							<input type="hidden" name="dailyAttendanceFormList[0].userName" value="デモ受講生" />
 							<input type="hidden" name="dailyAttendanceFormList[0].courseName" value="【削除不可】体験型Java研修用【デモ】" />
@@ -113,7 +119,7 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 									class="form-control endTimeCompany0" />
 							</td>
 							<td>
-								<input type="checkbox" name="dailyAttendanceFormList[0].isAbsent" value="on"
+								<input type="checkbox" th:name="${dailyAttendanceForm.status}" th:checked="${dailyAttendanceForm.status} == 1" th:value="${dailyAttendanceForm.status} == 1 ? on : off"
 									class="attendanceFormControl" />
 							</td>
 						</tr>
