@@ -50,5 +50,7 @@ public class DailyAttendanceForm {
 	private String courseName;
 	/** インデックス */
 	private String index;
+	/** 企業入力勤怠情報ID */
+	private Integer companyAttendanceId;
 
 }

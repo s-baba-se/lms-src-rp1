@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
 import jp.co.sss.lms.form.AttendanceForm;
+import jp.co.sss.lms.form.DailyAttendanceForm;
 import jp.co.sss.lms.service.PlaceService;
 import jp.co.sss.lms.service.StudentAttendanceService;
 import jp.co.sss.lms.util.Constants;
@@ -186,9 +187,35 @@ public class AttendanceController {
 			model.addAttribute("errors", errors);
 			return "attendance/bulkRegist";
 		}
-		
-		model.addAttribute("dailyAttendanceFormList", placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(attendanceForm)));
+
+		model.addAttribute("dailyAttendanceFormMap",
+				placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(attendanceForm)));
 		model.addAttribute("isSearch", true);
+
+		return "attendance/bulkRegist";
+	}
+
+	/**
+	 * 『確定』ボタン押下
+	 * 
+	 * @param model
+	 * @return 勤怠一括登録画面
+	 */
+	@RequestMapping(path = "/bulkRegist/complete", method = RequestMethod.POST)
+	public String complete(Model model, @ModelAttribute("dailyAttendanceFormList") List<DailyAttendanceForm> dailyAttendanceFormList) {
+
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println("★★★★★");
+		System.out.println("complete in");
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		for (var var : dailyAttendanceFormList) {
+			System.out.println(var);
+		}
+
 		return "attendance/bulkRegist";
 	}
 }

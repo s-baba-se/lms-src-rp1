@@ -3,6 +3,7 @@ package jp.co.sss.lms.service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -115,8 +116,8 @@ public class PlaceService {
 	}
 
 
-	public List<DailyAttendanceForm> setDailyAttendanceForm(List<UserAttendanceDto> userAttendanceDtoList) {
-		List<DailyAttendanceForm> dailyAttendanceFormList = new ArrayList<>();
+	public Map<String, List<DailyAttendanceForm>> setDailyAttendanceForm(List<UserAttendanceDto> userAttendanceDtoList) {
+		Map<String, List<DailyAttendanceForm>> dailyAttendanceFormMap = new LinkedHashMap<>();
 		
 		for (var userAttendanceDto : userAttendanceDtoList) {
 			DailyAttendanceForm dailyAttendanceForm = new DailyAttendanceForm();
@@ -179,10 +180,13 @@ public class PlaceService {
 				dailyAttendanceForm.setNote(userAttendanceDto.getNote());
 			}
 			
-			dailyAttendanceFormList.add(dailyAttendanceForm);
+			// 企業入力勤怠情報ID設定
+			dailyAttendanceForm.setCompanyAttendanceId(userAttendanceDto.getCompanyAttendanceId());
+
+			dailyAttendanceFormMap.computeIfAbsent(dailyAttendanceForm.getDispTrainingDate(), k -> new ArrayList<>()).add(dailyAttendanceForm);
 
 		}
-		return dailyAttendanceFormList;
+		return dailyAttendanceFormMap;
 	}
 	
 }
