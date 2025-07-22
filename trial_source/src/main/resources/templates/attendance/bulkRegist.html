@@ -65,7 +65,7 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 								</button>
 							</th>
 							<td>
-								<button id="submit-btn" type="submit" name="complete" value="0" class="btn btn-info"
+								<button id="submit-btn" type="submit" th:value="${startMap.index}" class="btn btn-info"
 									th:formaction="@{/attendance/bulkRegist/complete}">
 									確定する
 								</button>
@@ -84,7 +84,7 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 							<th style="width: 50px">欠席</th>
 						</tr>
 
-						<tr th:each="form : ${dailyAttendanceForm.value}">
+						<tr th:each="form, startForm : ${dailyAttendanceForm.value}">
 							<td th:text="${form.userName} != null ? ${form.userName} : ''"></td>
 							<td th:text="${form.courseName} != null ? ${form.courseName} : ''"></td>
 							<td th:text="${form.trainingStartTime} != null ? ${form.trainingStartTime} : ''"></td>
@@ -98,28 +98,42 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 								<th:block th:if="${form.note} == null ">なし</th:block>
 							</td>
 
-							<input type="hidden" th:name="${form.trainingStartTime}" th:value="${form.trainingStartTime}" />
-							<input type="hidden" th:name="${form.trainingEndTime}" th:value="${form.trainingEndTime}" />
-							<input type="hidden" th:name="${form.status}" th:value="${form.status}" />
-							<input type="hidden" th:name="${form.companyAttendanceId}" th:value="${form.companyAttendanceId}" />
-							<input type="hidden" th:name="${form.studentAttendanceId}" th:value="${form.studentAttendanceId}" />
-							<input type="hidden" th:name="${form.lmsUserId}" th:value="${form.lmsUserId}" />
-							<input type="hidden" th:name="${form.trainingDate}" th:value="${form.trainingDate}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].trainingStartTime|"
+								th:value="${form.trainingStartTime}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].trainingEndTime|"
+								th:value="${form.trainingEndTime}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].status|"
+								th:value="${form.status}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].companyAttendanceId|"
+								th:value="${form.companyAttendanceId}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].studentAttendanceId|"
+								th:value="${form.studentAttendanceId}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].lmsUserId|"
+								th:value="${form.lmsUserId}" />
+							<input type="hidden"
+								th:name="|dailyAttendanceList[${startForm.index}].trainingDate|"
+								th:value="${form.trainingDate}" />
 
-							<input type="hidden" th:name="${form.trainingStartTimeCopy}" th:value="${form.trainingStartTimeCopy}"
+							<input type="hidden" th:value="${form.trainingStartTimeCopy}"
 									th:class="'startTimeCompanyRounded' + ${startMap.index}" />
-							<input type="hidden" th:name="${form.trainingEndTimeCopy}" th:value="${form.trainingEndTimeCopy}" 
+							<input type="hidden" th:value="${form.trainingEndTimeCopy}" 
 									th:class="'endTimeCompanyRounded' + ${startMap.index}" />
 							<td>
-								<input type="text" th:name="${form.trainingStartTime}"
+								<input type="text"
 									th:class="'form-control startTimeCompany' + ${startMap.index}" />
 							</td>
 							<td>
-								<input type="text" th:name="${form.trainingEndTime}"
+								<input type="text"
 									th:class="'form-control endTimeCompany' + ${startMap.index}" />
 							</td>
 							<td>
-								<input type="checkbox" th:name="${form.status}" th:checked="${form.status} == 1" th:value="${form.status} == 1 ? on : off"
+								<input type="checkbox" th:checked="${form.status} == 1" th:value="${form.status} == 1 ? on : off"
 									class="attendanceFormControl" />
 							</td>
 						</tr>

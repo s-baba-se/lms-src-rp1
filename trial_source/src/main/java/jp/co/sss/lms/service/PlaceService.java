@@ -1,5 +1,8 @@
 package jp.co.sss.lms.service;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -56,10 +59,6 @@ public class PlaceService {
 	public Map<String, String> searchParamCheck(AttendanceForm attendanceForm) {
 		Map<String, String> errors = new HashMap<>();
 		boolean errFlg = false;
-		
-		System.out.println("searchParamCheck() in");
-		System.out.println("getSearchPeriodFrom：" + attendanceForm.getSearchPeriodFrom());
-		System.out.println("getSearchPeriodTo  ：" + attendanceForm.getSearchPeriodTo());
 
 		// 期間(FROM)の未入力チェック
 		if (attendanceForm.getSearchPeriodFrom() == null || attendanceForm.getSearchPeriodFrom().isEmpty()) {
@@ -189,4 +188,78 @@ public class PlaceService {
 		return dailyAttendanceFormMap;
 	}
 	
+	public Map<String, String> completeParamCheck(List<DailyAttendanceForm> dailyAttendanceFormList) {
+		Map<String, String> errors = new HashMap<>();
+		boolean errFlg = false;
+
+		for (var var : dailyAttendanceFormList) {
+			// 期間(FROM)の未入力チェック
+			if (var.getStatus().equals("1")) {
+				if (var.getTrainingStartTime().isEmpty() || var.getTrainingEndTime().isEmpty()) {
+	
+					errors.put("absentAndTrainingTimeExistsBulk",
+							messageUtil.getMessage("absentAndTrainingTimeExistsBulk",
+									new String[] {var.getTrainingDate()}));
+					errFlg = true;
+				}
+			} else {
+				if (var.getTrainingStartTime().isEmpty() || var.getTrainingEndTime().isEmpty()) {
+
+					errors.put("requiredTrainingTimeBulk",
+							messageUtil.getMessage("requiredTrainingTimeBulk",
+									new String[] {var.getTrainingDate()}));
+					errFlg = true;
+				}
+			}
+
+			if (errFlg) {
+				continue;
+			}
+
+			if ((!isValidHHmm(var.getTrainingStartTime()) && !isValidHHmm(var.getTrainingEndTime()))
+				|| dateUtil.stringToDate(var.getTrainingDate(), Constants.DEFAULT_DATE_FORMAT) == null) {
+
+				errors.put("trainingTimeBulk",
+						messageUtil.getMessage("trainingTimeBulk",
+								new String[] {var.getTrainingDate()}));
+			}
+
+			TrainingTime trainingStartTime = new TrainingTime(var.getTrainingStartTime());
+			if (trainingStartTime.getHour() >= 24 && trainingStartTime.getMinute() >= 1) {
+
+				errors.put("maxvalBulk",
+						messageUtil.getMessage("maxvalBulk",
+								new String[] {var.getTrainingDate(), "trainingStartTimeBulk", "24：00"}));
+			}
+
+			TrainingTime trainingEndTime = new TrainingTime(var.getTrainingEndTime());
+			if (trainingEndTime.getHour() >= 24 && trainingEndTime.getMinute() >= 1) {
+
+				errors.put("maxvalBulk",
+						messageUtil.getMessage("maxvalBulk",
+								new String[] {var.getTrainingDate(), "trainingEndTimeBulk", "24：00"}));
+			}
+
+			if (trainingStartTime.getHour() >= trainingEndTime.getHour()
+					&& trainingStartTime.getMinute() > trainingEndTime.getMinute()) {
+
+				errors.put("attendance.trainingTimeRangeBulk",
+						messageUtil.getMessage("attendance.trainingTimeRangeBulk",
+								new String[] {var.getTrainingDate()}));
+			}
+		}
+
+		return errors;
+	}
+
+    public static boolean isValidHHmm(String timeStr) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        try {
+            LocalTime.parse(timeStr, formatter);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
 }
+

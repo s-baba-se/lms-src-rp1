@@ -1,6 +1,7 @@
 package jp.co.sss.lms.controller;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
@@ -183,7 +185,6 @@ public class AttendanceController {
 		Map<String, String> errors = placeService.searchParamCheck(attendanceForm);
 		
 		if (!errors.isEmpty()) {
-			System.out.println("errors: " + errors);
 			model.addAttribute("errors", errors);
 			return "attendance/bulkRegist";
 		}
@@ -202,20 +203,54 @@ public class AttendanceController {
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/complete", method = RequestMethod.POST)
-	public String complete(Model model, @ModelAttribute("dailyAttendanceFormList") List<DailyAttendanceForm> dailyAttendanceFormList) {
+	public String complete(Model model, @RequestParam Map<String, String> paramMap) {
+		List<DailyAttendanceForm> list = new ArrayList<>();
 
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println("★★★★★");
-		System.out.println("complete in");
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		for (var var : dailyAttendanceFormList) {
+		// HTMLのパラメータを設定
+		for (Map.Entry<String, String> var : paramMap.entrySet()) {
+			String key = var.getKey();
+			String value = var.getValue();
+
+			if (key != null && (key.startsWith("dailyAttendanceList[") && key.contains("]."))) {
+				DailyAttendanceForm daf = new DailyAttendanceForm();
+
+				int startIndexPos = key.indexOf('[') + 1;
+				int endIndexPos = key.indexOf(']') + 1;
+//				int index = Integer.parseInt(key.substring(startIndexPos, endIndexPos));
+				String field = key.substring(key.indexOf("].") + 2);
+
+				System.out.println("★：" + field + "→" + value);
+				switch (field) {
+					case "setTrainingStartTime" -> daf.setTrainingStartTime(value.equals("[未入力]") ? "" : value);
+					case "setTrainingEndTime" -> daf.setTrainingEndTime(value.equals("[未入力]") ? "" : value);
+					case "setStatus" -> daf.setStatus(value);
+					case "setCompanyAttendanceId" -> daf.setCompanyAttendanceId(Integer.parseInt(value));
+					case "setStudentAttendanceId" -> daf.setStudentAttendanceId(Integer.parseInt(value));
+					case "setLmsUserId" -> daf.setLmsUserId(value);
+					case "setTrainingDate" -> daf.setTrainingDate(value);
+				}
+
+				list.add(daf);
+
+			}
+		}
+		
+		for (var var : list) {
 			System.out.println(var);
 		}
 
+/*
+		// 入力チェック
+		Map<String, String> errors = placeService.completeParamCheck(list);
+		
+		if (!errors.isEmpty()) {
+			model.addAttribute("errors", errors);
+			return "attendance/bulkRegist";
+		}
+*/
+		System.out.println("*************************");
+		System.out.println(list);
+		model.addAttribute("testList", list);
 		return "attendance/bulkRegist";
 	}
 }
