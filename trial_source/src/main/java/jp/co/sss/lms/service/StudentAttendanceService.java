@@ -1,9 +1,15 @@
 package jp.co.sss.lms.service;
 
 import java.text.ParseException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +17,13 @@ import org.springframework.stereotype.Service;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
+import jp.co.sss.lms.dto.UserAttendanceDto;
+import jp.co.sss.lms.entity.TCompanyAttendance;
 import jp.co.sss.lms.entity.TStudentAttendance;
 import jp.co.sss.lms.enums.AttendanceStatusEnum;
 import jp.co.sss.lms.form.AttendanceForm;
 import jp.co.sss.lms.form.DailyAttendanceForm;
+import jp.co.sss.lms.mapper.TCompanyAttendanceMapper;
 import jp.co.sss.lms.mapper.TStudentAttendanceMapper;
 import jp.co.sss.lms.util.AttendanceUtil;
 import jp.co.sss.lms.util.Constants;
@@ -43,6 +52,8 @@ public class StudentAttendanceService {
 	private LoginUserDto loginUserDto;
 	@Autowired
 	private TStudentAttendanceMapper tStudentAttendanceMapper;
+	@Autowired
+	private TCompanyAttendanceMapper tCompanyAttendanceMapper;
 
 	/**
 	 * 勤怠一覧情報取得
@@ -339,7 +350,7 @@ public class StudentAttendanceService {
 	 * 
 	 * @author 馬場成樹  – Task.25
 	 * @param lmsUserId
-	 * @return ture or false
+	 * @return 未入力件数結果(ture OR false)
 	 */
 	public boolean hasMissingAttendance(Integer lmsUserId) {
 
@@ -351,4 +362,378 @@ public class StudentAttendanceService {
 
 		return resultCount > 0;
 	}
+
+	/**
+	 * 『検索』ボタン押下時の入力チェック
+	 * 
+	 * @author 馬場成樹  – Task.58
+	 * @param attendanceForm
+	 * @return エラーメッセージ
+	 */
+	public Map<String, String> searchParamCheck(AttendanceForm attendanceForm) {
+		Map<String, String> errors = new HashMap<>();
+		boolean hasErrorMessage = false;
+
+		// 必須項目：期間(FROM)の未入力チェック
+		if (attendanceForm.getSearchPeriodFrom() == null || attendanceForm.getSearchPeriodFrom().isEmpty()) {
+			errors.put("searchFromEmptyError", messageUtil.getMessage("required", new String[] {"期間（from）"}));
+			hasErrorMessage = true;
+		}
+
+		// 必須項目：期間(To)の未入力チェック
+		if (attendanceForm.getSearchPeriodTo() == null || attendanceForm.getSearchPeriodTo().isEmpty()) {
+			errors.put("searchToEmptyError", messageUtil.getMessage("required", new String[] {"期間（to）"}));
+			hasErrorMessage = true;
+		}
+
+		// エラーメッセージが設定されている場合
+		if (hasErrorMessage) {
+			return errors;
+		}
+
+		// 現在日を取得
+		Date today = new Date();
+
+		// String型をDate型に変換
+		Date searchPeriodFrom = dateUtil.stringToSqlDate(attendanceForm.getSearchPeriodFrom());
+		Date searchPeriodTo = dateUtil.stringToSqlDate(attendanceForm.getSearchPeriodTo());
+
+		// 期間(To)が現在日付より未来日の場合
+		if (searchPeriodTo.after(today)) {
+			errors.put("searchToRangeError", messageUtil.getMessage("searchToRangeError",new String[] {attendanceForm.getSearchPeriodTo()}));
+		}
+
+		// 期間(To)が期間(From)より過去日の場合
+		if (searchPeriodTo.before(searchPeriodFrom)) {
+			errors.put("searchPeriodCompareError", messageUtil.getMessage("searchPeriodCompareError",
+					new String[] { attendanceForm.getSearchPeriodTo(), attendanceForm.getSearchPeriodFrom() }));
+		}
+
+		// 期間(From) ～ 期間(To)の日数 が 30日より大きい場合
+		int days = dateUtil.differenceDays(searchPeriodTo, searchPeriodFrom);
+		if (days > 30) {
+			String searchPeriod = messageUtil.getMessage("searchPeriod");
+			errors.put("searchSettingOver", messageUtil.getMessage("searchSettingOver", new String[] {searchPeriod, "30日"}));
+		}
+
+		return errors;
+	}
+
+	/**
+	 * 日別勤怠情報フォームリストの設定
+	 * 
+	 * @author 馬場成樹  – Task.58
+	 * @param userAttendanceDtoList
+	 * @return 日別勤怠情報フォームリスト
+	 */
+	public Map<String, List<DailyAttendanceForm>> setDailyAttendanceForm(List<UserAttendanceDto> userAttendanceDtoList) {
+		Map<String, List<DailyAttendanceForm>> dailyAttendanceFormMap = new LinkedHashMap<>();
+		
+		for (var userAttendanceDto : userAttendanceDtoList) {
+			DailyAttendanceForm dailyAttendanceForm = new DailyAttendanceForm();
+
+			dailyAttendanceForm.setStudentAttendanceId(userAttendanceDto.getPlaceId());
+			dailyAttendanceForm.setLmsUserId(userAttendanceDto.getLmsUserId().toString());
+			dailyAttendanceForm.setUserName(userAttendanceDto.getUserName());
+			dailyAttendanceForm.setCourseName(userAttendanceDto.getCourseName());
+			
+			// 日付設定（画面用）
+			dailyAttendanceForm.setDispTrainingDate(
+					dateUtil.dateToStringJ(userAttendanceDto.getTrainingDate(), "yyyy年M月d日(E)"));
+			dailyAttendanceForm.setTrainingDate(
+					dateUtil.dateToString(userAttendanceDto.getTrainingDate(), "yyyy-MM-dd"));
+
+			// 出勤時間設定
+			if (userAttendanceDto.getTrainingStartTime() != null && !userAttendanceDto.getTrainingStartTime().isEmpty()) {
+				// 画面用
+				String trainingStartTime = userAttendanceDto.getTrainingStartTime();
+				dailyAttendanceForm.setTrainingStartTime(trainingStartTime);
+
+				// コピー用(15分単位で切り上げた時刻)
+				TrainingTime trainingTime = new TrainingTime(trainingStartTime);
+				dailyAttendanceForm.setTrainingStartTimeCopy(trainingTime.roundUp().getFormattedString());
+
+			} else {
+				// 画面用([未入力])を設定
+				dailyAttendanceForm.setTrainingStartTime(Constants.NOT_ENTERED);
+			}
+
+			// 退勤時間設定
+			if (userAttendanceDto.getTrainingEndTime() != null && !userAttendanceDto.getTrainingEndTime().isEmpty()) {
+				// 画面用
+				String trainingEndTime = userAttendanceDto.getTrainingEndTime();
+				dailyAttendanceForm.setTrainingEndTime(trainingEndTime);
+
+				// コピー用(15分単位で切り下げた時刻)
+				TrainingTime trainingTime = new TrainingTime(trainingEndTime);
+				dailyAttendanceForm.setTrainingEndTimeCopy(trainingTime.roundDown().getFormattedString());
+
+			} else {
+				// 画面用([未入力])を設定
+				dailyAttendanceForm.setTrainingEndTime(Constants.NOT_ENTERED);
+			}
+
+			// 中抜け時間設定（hh:mm形式）
+			if (userAttendanceDto.getBlankTime() != null) {
+				dailyAttendanceForm.setBlankTimeValue(
+						attendanceUtil.calcBlankTime(userAttendanceDto.getBlankTime()).getFormattedString());
+			}
+
+			// 勤怠状態設定
+			if (userAttendanceDto.getStatus() != null) {
+				dailyAttendanceForm.setStatus(AttendanceStatusEnum.getEnum(userAttendanceDto.getStatus()).code.toString());
+				dailyAttendanceForm.setStatusDispName(AttendanceStatusEnum.getEnum(userAttendanceDto.getStatus()).name);
+			}
+
+			// 備考設定
+			if (userAttendanceDto.getNote() != null) {
+				dailyAttendanceForm.setNote(userAttendanceDto.getNote());
+			}
+
+			// 企業入力勤怠情報ID設定
+			dailyAttendanceForm.setCompanyAttendanceId(userAttendanceDto.getCompanyAttendanceId());
+
+			// キーが存在しない場合は新しいリストを生成してMapに登録
+			dailyAttendanceFormMap.computeIfAbsent(dailyAttendanceForm.getDispTrainingDate(), k -> new ArrayList<>()).add(dailyAttendanceForm);
+
+		}
+		return dailyAttendanceFormMap;
+	}
+
+	/**
+	 * 『確定』ボタン押下時の入力チェック
+	 * 
+	 * @author 馬場成樹  – Task.58
+	 * @param dailyAttendanceFormList
+	 * @return エラーメッセージ
+	 */
+	public Map<String, String> completeParamCheck(List<DailyAttendanceForm> dailyAttendanceFormList) {
+		Map<String, String> errors = new HashMap<>();
+		boolean hasErrorMessage = false;
+
+		for (var var : dailyAttendanceFormList) {
+
+			// 勤怠状態が1
+			if (var.getStatus() != null && var.getStatus().equals("1")) {
+
+				// 勤怠の開始・終了時間どちらかに値がある場合
+				if ((var.getTrainingStartTime() != null && !var.getTrainingStartTime().isEmpty())
+						|| (var.getTrainingEndTime() != null && !var.getTrainingEndTime().isEmpty())) {
+	
+					// エラーメッセージ設定
+					errors.put("absentAndTrainingTimeExistsBulk", messageUtil.getMessage("absentAndTrainingTimeExistsBulk",
+									new String[] {var.getTrainingDate()}));
+					hasErrorMessage = true;
+				}
+
+			// 勤怠状態が1以外
+			} else {
+
+				// 勤怠の開始・終了時間どちらかに値がない場合
+				if ((var.getTrainingStartTimeCopy() == null || var.getTrainingStartTimeCopy().isEmpty())
+						|| (var.getTrainingEndTimeCopy()) == null || var.getTrainingEndTimeCopy().isEmpty()) {
+
+					System.out.println(var.getTrainingStartTimeCopy());
+					System.out.println(var.getTrainingEndTimeCopy());
+					// エラーメッセージ設定
+					errors.put("requiredTrainingTimeBulk", messageUtil.getMessage("requiredTrainingTimeBulk",
+									new String[] {var.getTrainingDate()}));
+					hasErrorMessage = true;
+				}
+			}
+
+			// エラーメッセージが設定されている場合
+			if (hasErrorMessage) {
+				continue;
+			}
+
+			// 開始時間・終了時間の値がhh:mm形式以外の場合かつ日付として妥当出ない場合
+			if ((!isValidHHmm(var.getTrainingStartTimeCopy()) && !isValidHHmm(var.getTrainingEndTimeCopy()))
+				|| dateUtil.stringToDate(var.getTrainingDate(), Constants.DEFAULT_DATE_FORMAT) == null) {
+
+				// エラーメッセージ設定
+				errors.put("trainingTimeBulk", messageUtil.getMessage("trainingTimeBulk",
+								new String[] {var.getTrainingDate()}));
+			}
+
+			// 開始時間の値が24:00を超える場合（24:01～）
+			TrainingTime trainingStartTimeCopy = new TrainingTime(var.getTrainingStartTimeCopy());
+			if (trainingStartTimeCopy.getHour() >= 24 && trainingStartTimeCopy.getMinute() >= 1) {
+
+				// エラーメッセージ設定
+				String trainingStartTimeBulk = messageUtil.getMessage("trainingStartTimeBulk");
+				errors.put("maxvalBulk", messageUtil.getMessage("maxvalBulk",
+								new String[] {var.getTrainingDate(), trainingStartTimeBulk, "24：00"}));
+			}
+
+			// 終了時間の値が24:00を超える場合（24:01～）
+			TrainingTime trainingEndTimeCopy = new TrainingTime(var.getTrainingEndTimeCopy());
+			if (trainingEndTimeCopy.getHour() >= 24 && trainingEndTimeCopy.getMinute() >= 1) {
+
+				// エラーメッセージ設定
+				String trainingEndTimeBulk = messageUtil.getMessage("trainingEndTimeBulk");
+				errors.put("maxvalBulk", messageUtil.getMessage("maxvalBulk",
+								new String[] {var.getTrainingDate(), trainingEndTimeBulk, "24：00"}));
+			}
+
+			// 開始時間が終了時間を超えている場合
+			if (trainingStartTimeCopy.getHour() >= trainingEndTimeCopy.getHour()
+					&& trainingStartTimeCopy.getMinute() > trainingEndTimeCopy.getMinute()) {
+
+				// エラーメッセージ設定
+				errors.put("attendance.trainingTimeRangeBulk",
+						messageUtil.getMessage("attendance.trainingTimeRangeBulk",
+								new String[] {var.getTrainingDate()}));
+			}
+		}
+
+		return errors;
+	}
+
+	/**
+	 * hh:mm形式確認
+	 * 
+	 * @author 馬場成樹  – Task.58
+	 * @param timeStr
+	 * @return 判定結果(ture OR false)
+	 */
+    public static boolean isValidHHmm(String timeStr) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        try {
+            LocalTime.parse(timeStr, formatter);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    public List<DailyAttendanceForm> setParamMap(Map<String, String> paramMap){
+		List<DailyAttendanceForm> dailyAttendanceFormList = new ArrayList<>();
+
+		for (Map.Entry<String, String> var : paramMap.entrySet()) {
+			String key = var.getKey();
+			String value = var.getValue();
+
+			if (key != null && (key.startsWith("dailyAttendanceList[") && key.contains("]."))) {
+
+				// インデックスを取得
+				int idxStart = key.indexOf('[') + 1;
+				int idxEnd = key.indexOf(']');
+				int index = Integer.parseInt(key.substring(idxStart, idxEnd));
+
+				// keyの文字列からフィールド名を取得
+				String field = key.substring(key.indexOf("].") + 2);
+
+				// HTMLから受け取ったリスト数追加する
+				while (dailyAttendanceFormList.size() <= index) {
+					dailyAttendanceFormList.add(new DailyAttendanceForm());
+		        }
+				
+				DailyAttendanceForm daf = dailyAttendanceFormList.get(index);
+
+				// フィールドごとに値を設定
+				switch (field) {
+					case "trainingStartTime" -> daf.setTrainingStartTime(value.equals("[未入力]") ? "" : value);
+					case "trainingEndTime" -> daf.setTrainingEndTime(value.equals("[未入力]") ? "" : value);
+					case "trainingStartTimeCopy" -> daf.setTrainingStartTimeCopy(value);
+					case "trainingEndTimeCopy" -> daf.setTrainingEndTimeCopy(value);
+					case "status" -> daf.setStatus(value);
+					case "companyAttendanceId" -> daf.setCompanyAttendanceId((value != null && !value.isBlank()) ? Integer.parseInt(value) : null);
+					case "studentAttendanceId" -> daf.setStudentAttendanceId((value != null && !value.isBlank()) ? Integer.parseInt(value) : null);
+					case "lmsUserId" -> daf.setLmsUserId(value);
+					case "trainingDate" -> daf.setTrainingDate(value);
+				}
+			}
+		}
+		for (var var : dailyAttendanceFormList) {
+			System.out.println("【開始：" + var.getTrainingStartTimeCopy() + "】【終了：" + var.getTrainingEndTimeCopy() + "】");
+		}
+		return dailyAttendanceFormList;
+    }
+
+    /**
+     * 勤怠情報（企業入力）リストの設定
+     * 
+	 * @author 馬場成樹  – Task.58
+     * @param tCompanyAttendanceList
+     * @return 勤怠情報（企業入力）リスト
+     */
+    public List<TCompanyAttendance> setCompanyAttendanceList(List<DailyAttendanceForm> dailyAttendanceFormList) {
+    	List<TCompanyAttendance> tCompanyAttendanceList = new ArrayList<>();
+    	
+    	for (var var : dailyAttendanceFormList) {
+    		
+			TCompanyAttendance tCompanyAttendance = new TCompanyAttendance();
+			Date today = new Date();
+
+			if (var.getCompanyAttendanceId() != null) {
+    			tCompanyAttendance = tCompanyAttendanceMapper.findByCompanyAttendanceId(var.getCompanyAttendanceId(), Constants.DB_FLG_FALSE);
+
+    			tCompanyAttendance.setTrainingStartTime(var.getTrainingStartTimeCopy());
+    			tCompanyAttendance.setTrainingEndTime(var.getTrainingEndTimeCopy());
+
+    			if (var.getStatus() != null && !var.getStatus().equals("1")) {
+    				AttendanceUtil attendanceUtil = new AttendanceUtil();
+    				TrainingTime trainingStartTime = new TrainingTime();
+    				TrainingTime trainingEndTime = new TrainingTime();
+
+    				trainingStartTime.isValidTrainingTime(var.getTrainingStartTimeCopy());
+    				trainingEndTime.isValidTrainingTime(var.getTrainingEndTimeCopy());
+
+    				tCompanyAttendance.setStatus(attendanceUtil.getStatus(trainingStartTime, trainingEndTime).code);
+    			}
+    			tCompanyAttendance.setLastModifiedUser(loginUserDto.getLmsUserId());
+    			tCompanyAttendance.setLastModifiedDate(today);
+    		} else {
+    			tCompanyAttendance.setLmsUserId(Integer.parseInt(var.getLmsUserId()));
+    			tCompanyAttendance.setTrainingDate(dateUtil.stringToSqlDate(var.getTrainingDate()));
+    			tCompanyAttendance.setTrainingStartTime(var.getTrainingStartTimeCopy());
+    			tCompanyAttendance.setTrainingEndTime(var.getTrainingEndTimeCopy());
+
+    			if (var.getStatus() != null && !var.getStatus().equals("1")) {
+    				AttendanceUtil attendanceUtil = new AttendanceUtil();
+    				TrainingTime trainingStartTime = new TrainingTime();
+    				TrainingTime trainingEndTime = new TrainingTime();
+
+    				trainingStartTime.isValidTrainingTime(var.getTrainingStartTimeCopy());
+    				trainingEndTime.isValidTrainingTime(var.getTrainingEndTimeCopy());
+
+    				tCompanyAttendance.setStatus(attendanceUtil.getStatus(trainingStartTime, trainingEndTime).code);
+    			}
+    			tCompanyAttendance.setAccountId(loginUserDto.getAccountId());
+
+    			tCompanyAttendance.setDeleteFlg(Constants.DB_FLG_FALSE);
+    			tCompanyAttendance.setFirstCreateUser(loginUserDto.getLmsUserId());
+    			tCompanyAttendance.setFirstCreateDate(today);
+    			tCompanyAttendance.setLastModifiedUser(loginUserDto.getLmsUserId());
+    			tCompanyAttendance.setLastModifiedDate(today);
+    			
+    		}
+			
+			tCompanyAttendanceList.add(tCompanyAttendance);
+    	}
+    	
+    	return tCompanyAttendanceList;
+    }
+    
+    /**
+     * 勤怠情報（企業入力）テーブルのデータ登録／更新
+     * 
+	 * @author 馬場成樹  – Task.58
+     * @param tCompanyAttendanceList
+     * @return 成功メッセージ
+     */
+    public String updateCompanyAttendanceDB(List<TCompanyAttendance> tCompanyAttendanceList) {
+    	for (var var : tCompanyAttendanceList ) {
+    		if (var.getCompanyAttendanceId() != null) {
+    			// 勤怠情報（企業入力）更新
+    			tCompanyAttendanceMapper.update(var);
+    		} else {
+    			// 勤怠情報（企業入力）登録
+    			tCompanyAttendanceMapper.insert(var);
+    		}
+    	}
+    	
+    	return messageUtil.getMessage("regist.complete", new String[] {"勤怠情報"});
+    }
 }
