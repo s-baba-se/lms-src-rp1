@@ -55,8 +55,8 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 					<div th:text="${err.value}" class="error-message"></div>
 				</th:block>
 
-				<table th:if="${isSearch}" class="table">
-					<tbody  th:each="dailyAttendanceForm, startMap : ${dailyAttendanceFormMap}">
+				<table th:if="${dailyAttendanceFormMap} != null" class="table">
+					<tbody th:each="dailyAttendanceForm, startMap : ${dailyAttendanceFormMap}">
 						<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
 							<th colspan="7" th:text="${dailyAttendanceForm.key}"></th>
 							<th colspan="2">
@@ -126,10 +126,12 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 									th:class="'endTimeCompanyRounded' + ${startMap.index}" />
 							<td>
 								<input type="text"
+									th:name="|dailyAttendanceList[${startForm.index}].trainingStartTimeCopy|"
 									th:class="'form-control startTimeCompany' + ${startMap.index}" />
 							</td>
 							<td>
 								<input type="text"
+									th:name="|dailyAttendanceList[${startForm.index}].trainingEndTimeCopy|"
 									th:class="'form-control endTimeCompany' + ${startMap.index}" />
 							</td>
 							<td>

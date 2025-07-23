@@ -1,7 +1,6 @@
 package jp.co.sss.lms.controller;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
+import jp.co.sss.lms.dto.UserAttendanceDto;
+import jp.co.sss.lms.entity.TCompanyAttendance;
 import jp.co.sss.lms.form.AttendanceForm;
 import jp.co.sss.lms.form.DailyAttendanceForm;
 import jp.co.sss.lms.service.PlaceService;
@@ -159,12 +160,14 @@ public class AttendanceController {
 	/**
 	 * 勤怠一括登録画面 初期表示
 	 * 
+	 * @author 馬場成樹  – Task.58
 	 * @param model
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist", method = RequestMethod.GET)
 	public String bulkRegist(Model model) {
 		
+		// 会場ID・会場名設定
 		model.addAttribute("placeId",loginUserDto.getPlaceId());
 		model.addAttribute("placeName", placeService.getPlaceName(loginUserDto.getPlaceId()));
 		model.addAttribute("isSearch", false);
@@ -175,22 +178,30 @@ public class AttendanceController {
 	/**
 	 * 勤怠一括登録画面 『検索』ボタン押下
 	 * 
+	 * @author 馬場成樹  – Task.58
 	 * @param model
+	 * @param attendanceForm
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/search", method = RequestMethod.POST)
 	public String search(Model model, @ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
 
-		// 入力チェック
-		Map<String, String> errors = placeService.searchParamCheck(attendanceForm);
+		// 入力チェック処理
+		Map<String, String> errors = studentAttendanceService.searchParamCheck(attendanceForm);
 		
+		// エラーの場合、エラーメッセージを返す
 		if (!errors.isEmpty()) {
 			model.addAttribute("errors", errors);
 			return "attendance/bulkRegist";
 		}
 
-		model.addAttribute("dailyAttendanceFormMap",
-				placeService.setDailyAttendanceForm(placeService.getUserAttendanceDto(attendanceForm)));
+		// ユーザー勤怠情報DTOリストの取得
+		List<UserAttendanceDto> userAttendanceDtoList = placeService.getUserAttendanceDto(attendanceForm);
+
+		// 日別勤怠情報フォームリストの設定
+		Map<String, List<DailyAttendanceForm>> dailyAttendanceFormMap = studentAttendanceService.setDailyAttendanceForm(userAttendanceDtoList);
+		
+		model.addAttribute("dailyAttendanceFormMap", dailyAttendanceFormMap);
 		model.addAttribute("isSearch", true);
 
 		return "attendance/bulkRegist";
@@ -203,54 +214,29 @@ public class AttendanceController {
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/complete", method = RequestMethod.POST)
-	public String complete(Model model, @RequestParam Map<String, String> paramMap) {
-		List<DailyAttendanceForm> list = new ArrayList<>();
+	public String complete(Model model, @RequestParam Map<String, String> paramMap,
+			 @ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
 
-		// HTMLのパラメータを設定
-		for (Map.Entry<String, String> var : paramMap.entrySet()) {
-			String key = var.getKey();
-			String value = var.getValue();
+		// パラメータ設定
+		List<DailyAttendanceForm> dailyAttendanceFormList = studentAttendanceService.setParamMap(paramMap); 
 
-			if (key != null && (key.startsWith("dailyAttendanceList[") && key.contains("]."))) {
-				DailyAttendanceForm daf = new DailyAttendanceForm();
-
-				int startIndexPos = key.indexOf('[') + 1;
-				int endIndexPos = key.indexOf(']') + 1;
-//				int index = Integer.parseInt(key.substring(startIndexPos, endIndexPos));
-				String field = key.substring(key.indexOf("].") + 2);
-
-				System.out.println("★：" + field + "→" + value);
-				switch (field) {
-					case "setTrainingStartTime" -> daf.setTrainingStartTime(value.equals("[未入力]") ? "" : value);
-					case "setTrainingEndTime" -> daf.setTrainingEndTime(value.equals("[未入力]") ? "" : value);
-					case "setStatus" -> daf.setStatus(value);
-					case "setCompanyAttendanceId" -> daf.setCompanyAttendanceId(Integer.parseInt(value));
-					case "setStudentAttendanceId" -> daf.setStudentAttendanceId(Integer.parseInt(value));
-					case "setLmsUserId" -> daf.setLmsUserId(value);
-					case "setTrainingDate" -> daf.setTrainingDate(value);
-				}
-
-				list.add(daf);
-
-			}
-		}
-		
-		for (var var : list) {
-			System.out.println(var);
-		}
-
-/*
 		// 入力チェック
-		Map<String, String> errors = placeService.completeParamCheck(list);
-		
+		Map<String, String> errors = studentAttendanceService.completeParamCheck(dailyAttendanceFormList);
+
 		if (!errors.isEmpty()) {
 			model.addAttribute("errors", errors);
+			model.addAttribute("isSearch", true);
 			return "attendance/bulkRegist";
 		}
-*/
-		System.out.println("*************************");
-		System.out.println(list);
-		model.addAttribute("testList", list);
+
+		// 勤怠情報（企業入力）リストの設定
+		List<TCompanyAttendance> tCompanyAttendanceList = studentAttendanceService.setCompanyAttendanceList(dailyAttendanceFormList);
+
+		// 勤怠情報（企業入力）テーブルのデータ登録／更新
+		String message = studentAttendanceService.updateCompanyAttendanceDB(tCompanyAttendanceList);
+		
+		model.addAttribute("dafList", dailyAttendanceFormList);
+		model.addAttribute("message", message);
 		return "attendance/bulkRegist";
 	}
 }
