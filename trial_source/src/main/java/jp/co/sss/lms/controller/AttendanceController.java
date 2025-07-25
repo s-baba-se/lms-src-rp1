@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jp.co.sss.lms.dto.AttendanceManagementDto;
 import jp.co.sss.lms.dto.LoginUserDto;
@@ -170,7 +171,6 @@ public class AttendanceController {
 		// 会場ID・会場名設定
 		model.addAttribute("placeId",loginUserDto.getPlaceId());
 		model.addAttribute("placeName", placeService.getPlaceName(loginUserDto.getPlaceId()));
-		model.addAttribute("isSearch", false);
 
 		return "attendance/bulkRegist";
 	}
@@ -183,15 +183,21 @@ public class AttendanceController {
 	 * @param attendanceForm
 	 * @return 勤怠一括登録画面
 	 */
-	@RequestMapping(path = "/bulkRegist/search", method = RequestMethod.POST)
+	@RequestMapping(path = "/bulkRegist/search", method = {RequestMethod.GET, RequestMethod.POST})
 	public String search(Model model, @ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
 
+		System.out.println(attendanceForm);
 		// 入力チェック処理
 		Map<String, String> errors = studentAttendanceService.searchParamCheck(attendanceForm);
-		
+
+		model.addAttribute("placeId",loginUserDto.getPlaceId());
+		model.addAttribute("placeName", placeService.getPlaceName(loginUserDto.getPlaceId()));
+
 		// エラーの場合、エラーメッセージを返す
 		if (!errors.isEmpty()) {
 			model.addAttribute("errors", errors);
+			System.out.println(attendanceForm);
+			model.addAttribute("attendanceForm", attendanceForm);
 			return "attendance/bulkRegist";
 		}
 
@@ -200,9 +206,9 @@ public class AttendanceController {
 
 		// 日別勤怠情報フォームリストの設定
 		Map<String, List<DailyAttendanceForm>> dailyAttendanceFormMap = studentAttendanceService.setDailyAttendanceForm(userAttendanceDtoList);
-		
+
 		model.addAttribute("dailyAttendanceFormMap", dailyAttendanceFormMap);
-		model.addAttribute("isSearch", true);
+		model.addAttribute("attendanceForm", attendanceForm);
 
 		return "attendance/bulkRegist";
 	}
@@ -214,19 +220,22 @@ public class AttendanceController {
 	 * @return 勤怠一括登録画面
 	 */
 	@RequestMapping(path = "/bulkRegist/complete", method = RequestMethod.POST)
-	public String complete(Model model, @RequestParam Map<String, String> paramMap,
-			 @ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
+	public String complete(RedirectAttributes redirectAttributes,
+			Integer mapIndex,
+			@RequestParam Map<String, String> paramMap,
+			@ModelAttribute("attendanceForm") AttendanceForm attendanceForm) {
 
 		// パラメータ設定
-		List<DailyAttendanceForm> dailyAttendanceFormList = studentAttendanceService.setParamMap(paramMap); 
+		List<DailyAttendanceForm> dailyAttendanceFormList = studentAttendanceService.setParamMap(paramMap, mapIndex); 
 
 		// 入力チェック
-		Map<String, String> errors = studentAttendanceService.completeParamCheck(dailyAttendanceFormList);
+		Map<String, String> errors = studentAttendanceService.completeParamCheck(dailyAttendanceFormList, mapIndex);
 
 		if (!errors.isEmpty()) {
-			model.addAttribute("errors", errors);
-			model.addAttribute("isSearch", true);
-			return "attendance/bulkRegist";
+			redirectAttributes.addFlashAttribute("errors", errors);
+			redirectAttributes.addFlashAttribute("mapIndex", mapIndex);
+			redirectAttributes.addFlashAttribute("attendanceForm", attendanceForm);
+			return "redirect:/attendance/bulkRegist/search";
 		}
 
 		// 勤怠情報（企業入力）リストの設定
@@ -234,9 +243,10 @@ public class AttendanceController {
 
 		// 勤怠情報（企業入力）テーブルのデータ登録／更新
 		String message = studentAttendanceService.updateCompanyAttendanceDB(tCompanyAttendanceList);
-		
-		model.addAttribute("dafList", dailyAttendanceFormList);
-		model.addAttribute("message", message);
-		return "attendance/bulkRegist";
+
+		redirectAttributes.addFlashAttribute("attendanceForm", attendanceForm);
+		redirectAttributes.addFlashAttribute("mapIndex", mapIndex);
+		redirectAttributes.addFlashAttribute("message", message);
+		return "redirect:/attendance/bulkRegist/search";
 	}
 }

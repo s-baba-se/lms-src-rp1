@@ -7,7 +7,7 @@
 		SELECT *
 		FROM t_company_attendance
 		WHERE company_attendance_id = #{companyAttendanceId}
-			AND delete_flg = #{deleteFzlg}
+			AND delete_flg = #{deleteFlg}
 	</select>
 
 	<insert id="insert" parameterType="jp.co.sss.lms.entity.TCompanyAttendance" useGeneratedKeys="true" keyProperty="companyAttendanceId">

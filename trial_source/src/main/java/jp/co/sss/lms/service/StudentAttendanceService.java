@@ -507,84 +507,87 @@ public class StudentAttendanceService {
 	 * @param dailyAttendanceFormList
 	 * @return エラーメッセージ
 	 */
-	public Map<String, String> completeParamCheck(List<DailyAttendanceForm> dailyAttendanceFormList) {
+	public Map<String, String> completeParamCheck(List<DailyAttendanceForm> dailyAttendanceFormList, Integer mapIndex) {
 		Map<String, String> errors = new HashMap<>();
 		boolean hasErrorMessage = false;
 
+		System.out.println("サイズ" + dailyAttendanceFormList.size());
 		for (var var : dailyAttendanceFormList) {
 
-			// 勤怠状態が1
-			if (var.getStatus() != null && var.getStatus().equals("1")) {
-
-				// 勤怠の開始・終了時間どちらかに値がある場合
-				if ((var.getTrainingStartTime() != null && !var.getTrainingStartTime().isEmpty())
-						|| (var.getTrainingEndTime() != null && !var.getTrainingEndTime().isEmpty())) {
+//			if (var.getIndex().equals(String.valueOf(mapIndex))) {
+				// 勤怠状態が1
+				if (var.getStatus() != null && var.getStatus().equals("1")) {
+	
+					// 勤怠の開始・終了時間どちらかに値がある場合
+					if ((var.getTrainingStartTimeCopy() != null && !var.getTrainingStartTimeCopy().isEmpty())
+							|| (var.getTrainingEndTimeCopy() != null && !var.getTrainingEndTimeCopy().isEmpty())) {
+	
+						// エラーメッセージ設定
+						errors.put("absentAndTrainingTimeExistsBulk", messageUtil.getMessage("absentAndTrainingTimeExistsBulk",
+										new String[] {var.getTrainingDate()}));
+						hasErrorMessage = true;
+					}
+	
+				// 勤怠状態が1以外
+				} else {
+	
+					// 勤怠の開始・終了時間どちらかに値がない場合
+					if ((var.getTrainingStartTimeCopy() == null || var.getTrainingStartTimeCopy().isEmpty())
+							|| (var.getTrainingEndTimeCopy()) == null || var.getTrainingEndTimeCopy().isEmpty()) {
+	
+						System.out.println(var.getTrainingStartTimeCopy());
+						System.out.println(var.getTrainingEndTimeCopy());
+						// エラーメッセージ設定
+						errors.put("requiredTrainingTimeBulk", messageUtil.getMessage("requiredTrainingTimeBulk",
+										new String[] {var.getTrainingDate()}));
+						hasErrorMessage = true;
+					}
+				}
+	
+				// エラーメッセージが設定されている場合
+				if (hasErrorMessage) {
+					continue;
+				}
+	
+				// 開始時間・終了時間の値がhh:mm形式以外の場合かつ日付として妥当出ない場合
+				if ((!isValidHHmm(var.getTrainingStartTimeCopy()) && !isValidHHmm(var.getTrainingEndTimeCopy()))
+					|| dateUtil.stringToDate(var.getTrainingDate(), Constants.DEFAULT_DATE_FORMAT) == null) {
 	
 					// エラーメッセージ設定
-					errors.put("absentAndTrainingTimeExistsBulk", messageUtil.getMessage("absentAndTrainingTimeExistsBulk",
+					errors.put("trainingTimeBulk", messageUtil.getMessage("trainingTimeBulk",
 									new String[] {var.getTrainingDate()}));
-					hasErrorMessage = true;
 				}
-
-			// 勤怠状態が1以外
-			} else {
-
-				// 勤怠の開始・終了時間どちらかに値がない場合
-				if ((var.getTrainingStartTimeCopy() == null || var.getTrainingStartTimeCopy().isEmpty())
-						|| (var.getTrainingEndTimeCopy()) == null || var.getTrainingEndTimeCopy().isEmpty()) {
-
-					System.out.println(var.getTrainingStartTimeCopy());
-					System.out.println(var.getTrainingEndTimeCopy());
+	
+				// 開始時間の値が24:00を超える場合（24:01～）
+				TrainingTime trainingStartTimeCopy = new TrainingTime(var.getTrainingStartTimeCopy());
+				if (trainingStartTimeCopy.getHour() >= 24 && trainingStartTimeCopy.getMinute() >= 1) {
+	
 					// エラーメッセージ設定
-					errors.put("requiredTrainingTimeBulk", messageUtil.getMessage("requiredTrainingTimeBulk",
-									new String[] {var.getTrainingDate()}));
-					hasErrorMessage = true;
+					String trainingStartTimeBulk = messageUtil.getMessage("trainingStartTimeBulk");
+					errors.put("trainingStartTimeBulk", messageUtil.getMessage("maxvalBulk",
+									new String[] {var.getTrainingDate(), trainingStartTimeBulk, "24：00"}));
 				}
-			}
-
-			// エラーメッセージが設定されている場合
-			if (hasErrorMessage) {
-				continue;
-			}
-
-			// 開始時間・終了時間の値がhh:mm形式以外の場合かつ日付として妥当出ない場合
-			if ((!isValidHHmm(var.getTrainingStartTimeCopy()) && !isValidHHmm(var.getTrainingEndTimeCopy()))
-				|| dateUtil.stringToDate(var.getTrainingDate(), Constants.DEFAULT_DATE_FORMAT) == null) {
-
-				// エラーメッセージ設定
-				errors.put("trainingTimeBulk", messageUtil.getMessage("trainingTimeBulk",
-								new String[] {var.getTrainingDate()}));
-			}
-
-			// 開始時間の値が24:00を超える場合（24:01～）
-			TrainingTime trainingStartTimeCopy = new TrainingTime(var.getTrainingStartTimeCopy());
-			if (trainingStartTimeCopy.getHour() >= 24 && trainingStartTimeCopy.getMinute() >= 1) {
-
-				// エラーメッセージ設定
-				String trainingStartTimeBulk = messageUtil.getMessage("trainingStartTimeBulk");
-				errors.put("maxvalBulk", messageUtil.getMessage("maxvalBulk",
-								new String[] {var.getTrainingDate(), trainingStartTimeBulk, "24：00"}));
-			}
-
-			// 終了時間の値が24:00を超える場合（24:01～）
-			TrainingTime trainingEndTimeCopy = new TrainingTime(var.getTrainingEndTimeCopy());
-			if (trainingEndTimeCopy.getHour() >= 24 && trainingEndTimeCopy.getMinute() >= 1) {
-
-				// エラーメッセージ設定
-				String trainingEndTimeBulk = messageUtil.getMessage("trainingEndTimeBulk");
-				errors.put("maxvalBulk", messageUtil.getMessage("maxvalBulk",
-								new String[] {var.getTrainingDate(), trainingEndTimeBulk, "24：00"}));
-			}
-
-			// 開始時間が終了時間を超えている場合
-			if (trainingStartTimeCopy.getHour() >= trainingEndTimeCopy.getHour()
-					&& trainingStartTimeCopy.getMinute() > trainingEndTimeCopy.getMinute()) {
-
-				// エラーメッセージ設定
-				errors.put("attendance.trainingTimeRangeBulk",
-						messageUtil.getMessage("attendance.trainingTimeRangeBulk",
-								new String[] {var.getTrainingDate()}));
-			}
+	
+				// 終了時間の値が24:00を超える場合（24:01～）
+				TrainingTime trainingEndTimeCopy = new TrainingTime(var.getTrainingEndTimeCopy());
+				if (trainingEndTimeCopy.getHour() >= 24 && trainingEndTimeCopy.getMinute() >= 1) {
+	
+					// エラーメッセージ設定
+					String trainingEndTimeBulk = messageUtil.getMessage("trainingEndTimeBulk");
+					errors.put("trainingEndTimeBulk", messageUtil.getMessage("maxvalBulk",
+									new String[] {var.getTrainingDate(), trainingEndTimeBulk, "24：00"}));
+				}
+	
+				// 開始時間が終了時間を超えている場合
+				if (trainingStartTimeCopy.getHour() >= trainingEndTimeCopy.getHour()
+						&& trainingStartTimeCopy.getMinute() > trainingEndTimeCopy.getMinute()) {
+	
+					// エラーメッセージ設定
+					errors.put("attendance.trainingTimeRangeBulk",
+							messageUtil.getMessage("attendance.trainingTimeRangeBulk",
+									new String[] {var.getTrainingDate()}));
+				}
+//			}
 		}
 
 		return errors;
@@ -607,12 +610,14 @@ public class StudentAttendanceService {
         }
     }
 
-    public List<DailyAttendanceForm> setParamMap(Map<String, String> paramMap){
+    public List<DailyAttendanceForm> setParamMap(Map<String, String> paramMap, Integer mapIndex){
 		List<DailyAttendanceForm> dailyAttendanceFormList = new ArrayList<>();
 
 		for (Map.Entry<String, String> var : paramMap.entrySet()) {
 			String key = var.getKey();
 			String value = var.getValue();
+
+			System.out.println(key + "：" + value);
 
 			if (key != null && (key.startsWith("dailyAttendanceList[") && key.contains("]."))) {
 
@@ -642,11 +647,9 @@ public class StudentAttendanceService {
 					case "studentAttendanceId" -> daf.setStudentAttendanceId((value != null && !value.isBlank()) ? Integer.parseInt(value) : null);
 					case "lmsUserId" -> daf.setLmsUserId(value);
 					case "trainingDate" -> daf.setTrainingDate(value);
+					case "index" -> daf.setIndex(String.valueOf(value));
 				}
 			}
-		}
-		for (var var : dailyAttendanceFormList) {
-			System.out.println("【開始：" + var.getTrainingStartTimeCopy() + "】【終了：" + var.getTrainingEndTimeCopy() + "】");
 		}
 		return dailyAttendanceFormList;
     }
@@ -666,12 +669,16 @@ public class StudentAttendanceService {
 			TCompanyAttendance tCompanyAttendance = new TCompanyAttendance();
 			Date today = new Date();
 
+			// 企業入力勤怠情報IDが設定されている場合
 			if (var.getCompanyAttendanceId() != null) {
+				
+				// 勤怠情報（企業入力）を取得
     			tCompanyAttendance = tCompanyAttendanceMapper.findByCompanyAttendanceId(var.getCompanyAttendanceId(), Constants.DB_FLG_FALSE);
 
     			tCompanyAttendance.setTrainingStartTime(var.getTrainingStartTimeCopy());
     			tCompanyAttendance.setTrainingEndTime(var.getTrainingEndTimeCopy());
 
+    			// 勤怠状態が欠席（"1"）以外の場合
     			if (var.getStatus() != null && !var.getStatus().equals("1")) {
     				AttendanceUtil attendanceUtil = new AttendanceUtil();
     				TrainingTime trainingStartTime = new TrainingTime();
@@ -680,16 +687,22 @@ public class StudentAttendanceService {
     				trainingStartTime.isValidTrainingTime(var.getTrainingStartTimeCopy());
     				trainingEndTime.isValidTrainingTime(var.getTrainingEndTimeCopy());
 
+    				// 開始時間と終了時間を基に、勤怠Ｕtilから勤怠状態を取得
     				tCompanyAttendance.setStatus(attendanceUtil.getStatus(trainingStartTime, trainingEndTime).code);
+
+    			} else {
+    				tCompanyAttendance.setStatus(Short.parseShort(var.getStatus()));
     			}
     			tCompanyAttendance.setLastModifiedUser(loginUserDto.getLmsUserId());
     			tCompanyAttendance.setLastModifiedDate(today);
-    		} else {
+
+			} else {
     			tCompanyAttendance.setLmsUserId(Integer.parseInt(var.getLmsUserId()));
     			tCompanyAttendance.setTrainingDate(dateUtil.stringToSqlDate(var.getTrainingDate()));
     			tCompanyAttendance.setTrainingStartTime(var.getTrainingStartTimeCopy());
     			tCompanyAttendance.setTrainingEndTime(var.getTrainingEndTimeCopy());
 
+    			// 勤怠状態が欠席（"1"）以外の場合
     			if (var.getStatus() != null && !var.getStatus().equals("1")) {
     				AttendanceUtil attendanceUtil = new AttendanceUtil();
     				TrainingTime trainingStartTime = new TrainingTime();
@@ -698,18 +711,22 @@ public class StudentAttendanceService {
     				trainingStartTime.isValidTrainingTime(var.getTrainingStartTimeCopy());
     				trainingEndTime.isValidTrainingTime(var.getTrainingEndTimeCopy());
 
+    				// 開始時間と終了時間を基に、勤怠Ｕtilから勤怠状態を取得
     				tCompanyAttendance.setStatus(attendanceUtil.getStatus(trainingStartTime, trainingEndTime).code);
+
+    			} else {
+    				tCompanyAttendance.setStatus(Short.parseShort(var.getStatus()));
     			}
     			tCompanyAttendance.setAccountId(loginUserDto.getAccountId());
-
     			tCompanyAttendance.setDeleteFlg(Constants.DB_FLG_FALSE);
     			tCompanyAttendance.setFirstCreateUser(loginUserDto.getLmsUserId());
     			tCompanyAttendance.setFirstCreateDate(today);
     			tCompanyAttendance.setLastModifiedUser(loginUserDto.getLmsUserId());
     			tCompanyAttendance.setLastModifiedDate(today);
-    			
+
     		}
-			
+
+			// リスト追加
 			tCompanyAttendanceList.add(tCompanyAttendance);
     	}
     	
@@ -733,7 +750,7 @@ public class StudentAttendanceService {
     			tCompanyAttendanceMapper.insert(var);
     		}
     	}
-    	
+
     	return messageUtil.getMessage("regist.complete", new String[] {"勤怠情報"});
     }
 }

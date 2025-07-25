@@ -4,12 +4,18 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 <head>
 <meta charset="UTF-8">
 <title>勤怠一括登録 | LMS</title>
+<link rel="stylesheet" href="./../../../resources/static/css/bootstrap-datepicker.min.css">
 </head>
 
 <body>
 	<div id="contents" class="clearfix">
 		<div id="main" class="main2clm">
 			<h2>勤怠一括登録</h2>
+			
+			<!-- 登録完了メッセージ -->
+			<th:block th:if="${message}">
+				<div th:text="${message}" class="success-message"></div>
+			</th:block>
 
 			<form method="post" th:action="@{/attendance/bulkRegist/search}" class="form-horizontal">
 				<div class="well bs-component">
@@ -50,99 +56,133 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 						</div>
 					</fieldset>
 				</div>
-
-				<th:block th:each="err : ${errors}">
-					<div th:text="${err.value}" class="error-message"></div>
-				</th:block>
-
-				<table th:if="${dailyAttendanceFormMap} != null" class="table">
-					<tbody th:each="dailyAttendanceForm, startMap : ${dailyAttendanceFormMap}">
-						<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
-							<th colspan="7" th:text="${dailyAttendanceForm.key}"></th>
-							<th colspan="2">
-								<button type="button" th:value="${startMap.index}" class="btn btn-default copyAttendanceDaily">
-									受講生が入力した時刻をコピーする
-								</button>
-							</th>
-							<td>
-								<button id="submit-btn" type="submit" th:value="${startMap.index}" class="btn btn-info"
-									th:formaction="@{/attendance/bulkRegist/complete}">
-									確定する
-								</button>
-							</td>
-						</tr>
-						<tr>
-							<th style="width: 120px">ユーザー名</th>
-							<th style="width: 190px">コース名</th>
-							<th style="width: 90px">出勤</th>
-							<th style="width: 90px">退勤</th>
-							<th style="width: 90px">中抜け時間</th>
-							<th style="width: 90px">ステータス</th>
-							<th style="width: 50px">備考</th>
-							<th style="width: 90px">開始時間</th>
-							<th style="width: 90px">終了時間</th>
-							<th style="width: 50px">欠席</th>
-						</tr>
-
-						<tr th:each="form, startForm : ${dailyAttendanceForm.value}">
-							<td th:text="${form.userName} != null ? ${form.userName} : ''"></td>
-							<td th:text="${form.courseName} != null ? ${form.courseName} : ''"></td>
-							<td th:text="${form.trainingStartTime} != null ? ${form.trainingStartTime} : ''"></td>
-							<td th:text="${form.trainingEndTime} != null ? ${form.trainingEndTime} : ''"></td>
-							<td th:text="${form.blankTimeValue} != null ? ${form.blankTimeValue} : ''"></td>
-							<td th:text="${form.statusDispName} != null ? ${form.statusDispName} : ''"></td>
-							<td>
-								<strong th:if="${form.note} != null "
-									data-toggle="popover" data-placement="right" th:data-content="${form.note}" data-trigger="hover"
-									data-original-title="" title="">あり</strong>
-								<th:block th:if="${form.note} == null ">なし</th:block>
-							</td>
-
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].trainingStartTime|"
-								th:value="${form.trainingStartTime}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].trainingEndTime|"
-								th:value="${form.trainingEndTime}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].status|"
-								th:value="${form.status}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].companyAttendanceId|"
-								th:value="${form.companyAttendanceId}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].studentAttendanceId|"
-								th:value="${form.studentAttendanceId}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].lmsUserId|"
-								th:value="${form.lmsUserId}" />
-							<input type="hidden"
-								th:name="|dailyAttendanceList[${startForm.index}].trainingDate|"
-								th:value="${form.trainingDate}" />
-
-							<input type="hidden" th:value="${form.trainingStartTimeCopy}"
-									th:class="'startTimeCompanyRounded' + ${startMap.index}" />
-							<input type="hidden" th:value="${form.trainingEndTimeCopy}" 
-									th:class="'endTimeCompanyRounded' + ${startMap.index}" />
-							<td>
-								<input type="text"
-									th:name="|dailyAttendanceList[${startForm.index}].trainingStartTimeCopy|"
-									th:class="'form-control startTimeCompany' + ${startMap.index}" />
-							</td>
-							<td>
-								<input type="text"
-									th:name="|dailyAttendanceList[${startForm.index}].trainingEndTimeCopy|"
-									th:class="'form-control endTimeCompany' + ${startMap.index}" />
-							</td>
-							<td>
-								<input type="checkbox" th:checked="${form.status} == 1" th:value="${form.status} == 1 ? on : off"
-									class="attendanceFormControl" />
-							</td>
-						</tr>
-
-					</tbody>
-				</table>
+				
 			</form>
+
+			<th:block th:each="err : ${errors}">
+				<div th:text="${err.value}" class="error-message"></div>
+			</th:block>
+
+			<th:block th:if="${dailyAttendanceFormMap} != null">
+				<th:block th:each="dailyAttendanceForm, startMap : ${dailyAttendanceFormMap}">
+					<form method="post" th:action="@{/attendance/bulkRegist/complete}" class="form-horizontal">
+
+						<th:block th:if="${attendanceForm != null}">
+							<input type="hidden" name="searchPeriodFrom" th:value="${attendanceForm.searchPeriodFrom}" >
+							<input type="hidden" name="searchPeriodTo" th:value="${attendanceForm.searchPeriodTo}" >
+							<input type="hidden" name="placeId" th:value="${attendanceForm.placeId}" >
+						</th:block>
+
+						<table class="table">
+							<tbody>
+								<tr style="background-color: #f5f5f5; border-top-style: solid; border-width: medium;">
+									<th colspan="7" th:text="${dailyAttendanceForm.key}"></th>
+									<th colspan="2">
+										<button type="button" th:value="${startMap.index}" class="btn btn-default copyAttendanceDaily">
+											受講生が入力した時刻をコピーする
+										</button>
+									</th>
+									<td>
+										<button id="submit-btn" type="submit" name="mapIndex" th:value="${startMap.index}" class="btn btn-info">
+											確定する
+										</button>
+									</td>
+								</tr>
+								<tr>
+									<th style="width: 120px">ユーザー名</th>
+									<th style="width: 190px">コース名</th>
+									<th style="width: 90px">出勤</th>
+									<th style="width: 90px">退勤</th>
+									<th style="width: 90px">中抜け時間</th>
+									<th style="width: 90px">ステータス</th>
+									<th style="width: 50px">備考</th>
+									<th style="width: 90px">開始時間</th>
+									<th style="width: 90px">終了時間</th>
+									<th style="width: 50px">欠席</th>
+								</tr>
+								<tr th:each="form, startForm : ${dailyAttendanceForm.value}">
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].trainingStartTime|"
+										th:value="${form.trainingStartTime}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].trainingEndTime|"
+										th:value="${form.trainingEndTime}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].status|"
+										th:value="${form.status}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].companyAttendanceId|"
+										th:value="${form.companyAttendanceId}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].studentAttendanceId|"
+										th:value="${form.studentAttendanceId}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].lmsUserId|"
+										th:value="${form.lmsUserId}" />
+									<input type="hidden"
+										th:name="|dailyAttendanceList[${startForm.index}].trainingDate|"
+										th:value="${form.trainingDate}" />
+									<input type="hidden"
+										th:value="${form.trainingStartTimeCopy}"
+										th:class="'startTimeCompanyRounded' + ${startMap.index}" />
+									<input type="hidden" th:value="${form.trainingEndTimeCopy}" 
+										th:class="'endTimeCompanyRounded' + ${startMap.index}" />
+									<input type="hidden" th:name="|dailyAttendanceList[${startForm.index}].index|"
+										th:value="${startMap.index}" />
+									<td th:text="${form.userName} != null ? ${form.userName} : ''"></td>
+									<td th:text="${form.courseName} != null ? ${form.courseName} : ''"></td>
+									<td th:text="${form.trainingStartTime} != null ? ${form.trainingStartTime} : ''"></td>
+									<td th:text="${form.trainingEndTime} != null ? ${form.trainingEndTime} : ''"></td>
+									<td th:text="${form.blankTimeValue} != null ? ${form.blankTimeValue} : ''"></td>
+									<td th:text="${form.statusDispName} != null ? ${form.statusDispName} : ''"></td>
+									<td>
+										<strong th:if="${form.note} != null "
+											data-toggle="popover" data-placement="right" th:data-content="${form.note}">あり</strong>
+										<th:block th:if="${form.note} == null ">なし</th:block>
+									</td>
+									<td>
+										<input type="text"
+											th:name="|dailyAttendanceList[${startForm.index}].trainingStartTimeCopy|"
+											th:classappend="${errors != null
+														and startMap.index == mapIndex
+														and (errors.containsKey('absentAndTrainingTimeExistsBulk')
+														  or errors.containsKey('requiredTrainingTimeBulk')
+														  or errors.containsKey('trainingTimeBulk')
+														  or errors.containsKey('trainingStartTimeBulk')
+														  or errors.containsKey('attendance.trainingTimeRangeBulk')
+														  )}
+														  ? 'errorInput' : ''"
+											th:class="'form-control startTimeCompany' + ${startMap.index}" />
+									</td>
+									<td>
+										<input type="text"
+											th:name="|dailyAttendanceList[${startForm.index}].trainingEndTimeCopy|"
+											th:classappend="${errors != null
+														and startMap.index == mapIndex
+														and (errors.containsKey('absentAndTrainingTimeExistsBulk')
+														  or errors.containsKey('requiredTrainingTimeBulk')
+														  or errors.containsKey('trainingTimeBulk')
+														  or errors.containsKey('trainingEndTimeBulk')
+														  or errors.containsKey('attendance.trainingTimeRangeBulk')
+														  )}
+														   ? 'errorInput' : ''"
+											th:class="'form-control endTimeCompany' + ${startMap.index}" />
+									</td>
+									<td>
+										<input type="hidden"
+											th:name="|dailyAttendanceList[${startForm.index}].status|"
+											value="0" />
+										<input type="checkbox" th:checked="${form.status} == 1"
+											th:name="|dailyAttendanceList[${startForm.index}].status|"
+											value="1"
+											class="attendanceFormControl" />
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</form>
+				</th:block>
+			</th:block>
 		</div>
 		<!--#main-->
 	</div>
