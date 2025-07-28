@@ -610,6 +610,14 @@ public class StudentAttendanceService {
         }
     }
 
+    /**
+     * 画面パラメータ情報取得
+	 * 
+	 * @author 馬場成樹  – Task.58
+     * @param paramMap
+     * @param mapIndex
+     * @return dailyAttendanceFormList
+     */
     public List<DailyAttendanceForm> setParamMap(Map<String, String> paramMap, Integer mapIndex){
 		List<DailyAttendanceForm> dailyAttendanceFormList = new ArrayList<>();
 

@@ -136,9 +136,10 @@ th:replace="~{/common/layout :: layout(~{::title},~{::body/content()})}">
 									<td th:text="${form.blankTimeValue} != null ? ${form.blankTimeValue} : ''"></td>
 									<td th:text="${form.statusDispName} != null ? ${form.statusDispName} : ''"></td>
 									<td>
-										<strong th:if="${form.note} != null "
-											data-toggle="popover" data-placement="right" th:data-content="${form.note}">あり</strong>
-										<th:block th:if="${form.note} == null ">なし</th:block>
+										<strong th:if="${form.note != null and form.note != ''}"
+											data-toggle="popover" data-placement="right" th:data-content="${form.note}"
+											data-trigger="hover" data-original-title="" title="">あり</strong>
+										<th:block th:unless="${form.note != null and form.note != ''}">なし</th:block>
 									</td>
 									<td>
 										<input type="text"
